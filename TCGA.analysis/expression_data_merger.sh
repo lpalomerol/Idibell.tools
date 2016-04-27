@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#For change or replace annoying strings ---> sed -i 's/foo/bar/g' files <---
+
+
 join_all() {
     local file=$1
     shift
