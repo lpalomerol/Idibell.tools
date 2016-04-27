@@ -1,3 +1,11 @@
+# RStudio files
+.Rdata
+.Rhistory
+
+
+#IGNORE ALL TXT FILES STARTING WITH DATA PREFIX!
+data*.txt
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
