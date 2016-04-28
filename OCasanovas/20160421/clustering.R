@@ -55,9 +55,6 @@ save_plot <- function(data, image_name, plot_title ){
 
 #By mice
 #Base model without filter
-lolcluster = make_cluster(mRX03, SAMPLES)
-save_plot(lolcluster, 'lol.png', 'lool')
-
 save_plot(make_cluster(mRX03, PROBES),
           'clus_mouse_probes_nofilter.png', 
           'Mouse - Clustering the probes without filter')
