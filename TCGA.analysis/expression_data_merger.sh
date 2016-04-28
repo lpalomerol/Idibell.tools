@@ -1,28 +1,24 @@
 #!/bin/bash
 
-#For change or replace annoying strings ---> sed -i 's/foo/bar/g' files <---
+sed -i 's/Hybridization/bcr_patient_barcode/' $@
+sed -i 's/REF//g' $@
+
+touch prev
+echo "Generate PREV file from $1..."
 
 
-join_all() {
-    local file=$1
-    shift
+i=0;
+j=$i
+cut -f1 $1 > prev$i
 
-    awk '{print $1, $2}' "$file" | {
-        if (($# > 0)); then
-            join2 - <(join_all "$@") $(($# + 1))
-        else
-            cat
-        fi
-    }
-}
+for FILE in $@; do
+  j=$(($i+1))
+  echo  "joining...$FILE to prev$i"
+  join -a1 -1 1 -2 1 prev$i $FILE > prev$j
+  i=$(($i+1))
 
-join2() {
-    local file1=$1
-    local file2=$2
-    local count=$3
+done
 
-    local fields=$(eval echo 2.{2..$count})
-    join -a1 -a2 -e 'NA' -o "0 1.2 $fields" "$file1" "$file2"
-}
-
-join_all "$@"
+mv prev$i data_expression_genes_merged.txt
+rm prev*
+#head prev
