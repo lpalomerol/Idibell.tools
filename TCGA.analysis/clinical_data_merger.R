@@ -3,95 +3,31 @@
 # Author: Luis Palomero, 2016/04/25
 ############################################################
 
-setwd("C:/Users/lpalomero/Desktop/coad_data/Clinical_survival")
 
-loadFile = function(file){
-  raw = readLines(file)
-  raw = raw[-2:-3]
-  read.csv(textConnection(raw), header = TRUE, stringsAsFactors = FALSE, sep='\t')
-}
+#External functions
+source('tools/follow_up_dataframe_tools.R')
+source('tools/clinical_data_dataframe_tools.R')
 
-saveFile = function(data, output_name){
-  data = replace(data, is.na(data), '[Not Available]')
-  write.table(data, file=output_name, sep='\t', row.names = FALSE)
-}
-
-clinical_data_name = 'nationwidechildrens.org_clinical_patient_coad.txt'
-follow_up_name = 'nationwidechildrens.org_clinical_follow_up_v1.0_nte_coad.txt'
-
-output_name = 'nationwidechildrens.org_clinical_patient_coad_follow_up.txt'
-output_filtered_name = 'nationwidechildrens.org_clinical_patient_coad_follow_up_filtered_.txt'
-
-clinical_data = loadFile(clinical_data_name)
-follow_up = loadFile(follow_up_name)
-
-#Merge files
-clinical_data_merged = merge(clinical_data, follow_up, by = "bcr_patient_barcode", all=T, suffixes = )
-saveFile(clinical_data_merged, output_name)
-
-#Create a file with filtered data
-keeps <- c(
-  'bcr_patient_uuid',
-  'bcr_patient_barcode',
-  'histological_type',
-  'gender',
-  'ajcc_tumor_pathologic_pt',
-  'ajcc_nodes_pathologic_pn',
-  'ajcc_metastasis_pathologic_pm',
-  'ajcc_pathologic_tumor_stage',
-  'vital_status',
-  'last_contact_days_to',
-  'death_days_to',
-  'new_tumor_event_dx_days_to'
+#The code
+dataframes <- list(
+  load_follow_up_data('./20160428/data/data_follow_up_v1.5_brca.txt'),
+  load_follow_up_data('./20160428/data/data_follow_up_v2.1_brca.txt'),
+  load_follow_up_data('./20160428/data/data_follow_up_v4.0_nte_brca.txt')
 )
 
-clinical_data_merged_filtered = clinical_data_merged[ , (names(clinical_data_merged) %in% keeps)]
+follow_ups <- merge_follow_ups(dataframes)
+follow_ups <- clean_follow_up_dataframe_data(follow_ups)
 
+clinical_data <- load_clinical_data('./20160428/data/data_clinical_raw.txt')
 
-#Add extra fields
-is_dead <- function(data){
-  return (apply(data['vital_status'], 1, FUN = function(value){ if (value == 'Dead'){ return (1) } else { return (0)}}))
-}
+clinical_data <- clean_clinical_data(clinical_data)
 
-is_recur <- function(data){
-  chec_recur <- function(line) {
-    if (!is.na(line['new_tumor_event_dx_days_to'])) {
-      return (1)
-    } else {
-      return (0)
-    }
-  }
-  return  (apply(data, 1, FUN = chec_recur ))
-}
+clinical_data_followup = attach_followup_data(clinical_data, follow_ups)
 
-get_death_time <- function(data) {
- find_data <- function(line){
-   if(line['event.death'] == 1) {
-     days = (line['death_days_to'])
-   } else {
-     days = (line['last_contact_days_to'])
-   }
-   return ( floor(as.numeric(days)/30))
- }
- return (apply(data, 1, FUN = find_data))
-}
+save_clinical_data(clinical_data_followup, './20160428/output/data_clinical_followup.txt')
 
-get_recur_time <- function(data){
-  find_data <- function(line){
-    if(line['event.recur'] == 1) {
-      days = (line['new_tumor_event_dx_days_to'])
-    } else {
-      days = ifelse( (line['last_contact_days_to'] != '[Not Available]') , line['last_contact_days_to'],line['death_days_to'] )
-    }
-    return ( floor(as.numeric(days)/30))
-  }
-  return (apply(data, 1, FUN = find_data))
-}
+clinical_data_redux = get_reduced_clinical_data((clinical_data_followup))
 
-clinical_data_merged_filtered['event.death'] = is_dead(clinical_data_merged_filtered)
-clinical_data_merged_filtered[,'event.recur'] = is_recur(clinical_data_merged_filtered)
-clinical_data_merged_filtered[,'time.death'] = get_death_time(clinical_data_merged_filtered)
-clinical_data_merged_filtered[,'time.recur'] = get_recur_time(clinical_data_merged_filtered)
+clinical_data_redux_events = attach_events_data(clinical_data_redux)
 
-saveFile(clinical_data_merged_filtered, output_filtered_name)
-
+save_clinical_data(clinical_data_redux_events, './20160428/output/data_clinical_followup_redux.txt')

@@ -2,9 +2,9 @@
 .Rdata
 .Rhistory
 
-
-#IGNORE ALL TXT FILES STARTING WITH DATA PREFIX!
-data*.txt
+#IGNORE DATA AND OUTPUT FILES
+output/
+data/
 
 # Windows image file caches
 Thumbs.db
