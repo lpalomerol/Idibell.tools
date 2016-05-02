@@ -50,15 +50,16 @@ attach_events_data <- function(clinical_data){
   clinical_data
 }
 
+check_line_is_dead <- function(value){
+  if (value == 'Dead'){ 
+    return (as.numeric(1)) 
+  } else { 
+    return (as.numeric(0))
+  }
+}
 
 check_is_dead <- function(data){
-  return (apply(data['vital_status'], 1, FUN = function(value){ 
-    if (value == 'Dead'){ 
-      return (1) 
-    } else { 
-      return (0)
-    }
-  }))
+  return (apply(data['vital_status'], 1, FUN = check_line_is_dead))
 }
 
 check_is_recur <- function(data){
