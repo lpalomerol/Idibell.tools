@@ -50,15 +50,16 @@ attach_events_data <- function(clinical_data){
   clinical_data
 }
 
+check_line_is_dead <- function(value){
+  if (value == 'Dead'){ 
+    return (as.numeric(1)) 
+  } else { 
+    return (as.numeric(0))
+  }
+}
 
 check_is_dead <- function(data){
-  return (apply(data['vital_status'], 1, FUN = function(value){ 
-    if (value == 'Dead'){ 
-      return (1) 
-    } else { 
-      return (0)
-    }
-  }))
+  return (apply(data['vital_status'], 1, FUN = check_line_is_dead))
 }
 
 check_is_recur <- function(data){
@@ -72,16 +73,19 @@ check_is_recur <- function(data){
   return  (apply(data, 1, FUN = chec_recur ))
 }
 
-get_death_time <- function(data) {
-  find_data <- function(line){
+get_line_death_time <- function(line){
     if(line['event.death'] == 1) {
-      days = (line['death_days_to'])
+      days = line['death_days_to']
     } else {
-      days = (line['last_contact_days_to'])
+      days = line['last_contact_days_to']
     }
-    return ( floor(as.numeric(days)/30))
-  }
-  return (apply(data, 1, FUN = find_data))
+    return (as.numeric(days))
+}
+
+get_death_time <- function(data) {
+    return (apply(data[,c('event.death', 'death_days_to', 'last_contact_days_to')],
+                1, 
+                FUN =function(line){floor(get_line_death_time(line)/30)}))
 }
 
 get_recur_time <- function(data){

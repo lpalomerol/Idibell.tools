@@ -5,6 +5,8 @@
 #IGNORE DATA AND OUTPUT FILES
 output/
 data/
+*.png
+*.rar
 
 # Windows image file caches
 Thumbs.db

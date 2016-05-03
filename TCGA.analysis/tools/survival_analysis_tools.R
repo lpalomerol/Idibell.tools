@@ -15,6 +15,14 @@ load_gene_expression_data <- function(location){
 
 }
 
+get_clinical_and_expression_data <- function(filename_clinical, filename_expression, gene_name){
+  clinical_data <- load_clinical_data(filename_clinical)
+  expression_data <- load_gene_expression_data(filename_expression)
+  patient_data_fields <- append(BASIC_SURVIVAL_FIELDS, gene_name)
+  build_patient_expression_dataset(clinical_data, expression_data, patient_data_fields)
+}
+
+
 normalize_sample_names <- function(name){
   name2 <- substr(name, 0, 12)
   return (gsub("[.]", "-", name2))
@@ -40,4 +48,11 @@ normalize_events_dataset <- function(dataset, fields_to_keep = BASIC_SURVIVAL_FI
   )
   my_dataset[complete.cases(my_dataset),]
 
+}
+
+build_surv_models <- function(dataframe){
+  list(
+    death = Surv(dataframe$time.death, dataframe$event.death==1),
+    recur = Surv(dataframe$time.recur, dataframe$time.recur==1)
+  )
 }

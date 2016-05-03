@@ -12,7 +12,7 @@ merge_follow_ups <- function(dataframes) {
 }
 
 clean_follow_up_dataframe_data <- function(dataframe){
-  dataframe$new_tumor_event_dx_days_to = as.numeric(dataframe$new_tumor_event_dx_days_to)  
+  dataframe$new_tumor_event_dx_days_to = as.numeric(as.character(dataframe$new_tumor_event_dx_days_to))
   dataframe = dataframe[!is.na(dataframe$new_tumor_event_dx_days_to),]
   dataframe = with(dataframe, dataframe[order(bcr_patient_barcode, new_tumor_event_dx_days_to, bcr_patient_uuid),])
   dataframe[!duplicated(dataframe$bcr_patient_barcode),]
