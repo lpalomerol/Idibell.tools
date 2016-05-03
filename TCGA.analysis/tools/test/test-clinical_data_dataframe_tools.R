@@ -111,6 +111,8 @@ test_that('Should add death events data when valid dataframe is provided', {
   #Arrange
   expect_that(toString(death_events_data$vital_status[1]), equals(VITAL_STATUS_ALIVE))
   expect_that(toString(death_events_data$vital_status[2]), equals(VITAL_STATUS_DEAD))
-    expect_that(death_events_data$event.death, equals(c(NO_EVENT_DEATH, EVENT_DEATH)))
+  expect_that(death_events_data$event.death, equals(c(NO_EVENT_DEATH, EVENT_DEATH)))
   expect_that(death_events_data$time.death, equals(c(MONTHS_LAST_CONTACT, MONTHS_DEATH)))
 })
+
+
