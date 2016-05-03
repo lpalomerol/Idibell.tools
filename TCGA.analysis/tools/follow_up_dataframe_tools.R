@@ -18,7 +18,7 @@ load_follow_up_data <- function(file, version='', new_time_event_file = ''){
 }
 
 build_followup_file <- function(filename){
-  raw = readLines(file)
+  raw = readLines(filename)
   #Remove unwanted headers
   raw = raw[-2:-3]
   read.csv(textConnection(raw), header = TRUE, stringsAsFactors = FALSE, sep='\t')
@@ -34,7 +34,9 @@ build_followup_file_v4_0 <- function(followup_file, nte_file){
 }
 
 normalize_followup_dataframe <- function(dataframe){
-  keeps = c('bcr_patient_uuid', 'bcr_patient_barcode', 'new_tumor_event_dx_days_to', 'vital_status', 'last_contact_days_to')
+  keeps = c('bcr_patient_uuid', 'bcr_patient_barcode', 
+            'new_tumor_event_dx_days_to', 'vital_status', 
+            'last_contact_days_to', 'death_days_to')
   dataframe[,(names(dataframe) %in% keeps)]
 }
 

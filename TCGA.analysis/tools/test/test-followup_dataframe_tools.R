@@ -33,11 +33,12 @@ build_sample_dataframe <- function(){
     c('barcode1', 'barcode2'),
     c('10','22'),
     c('11', '12'),
-    c('Alive', 'Dead')
+    c('Alive', 'Dead'),
+    c('13', '14')
   )
   names(complete_dataframe) = c('bcr_patient_uuid', 'bcr_patient_barcode', 
                                 'new_tumor_event_dx_days_to', 'last_contact_days_to', 
-                                'vital_status')  
+                                'vital_status', 'death_days_to')  
   complete_dataframe
 }
 
@@ -54,7 +55,8 @@ test_that('Should keep base columns with complete followup dataframe provided', 
   expect_that(length(normalized_dataframe$new_tumor_event_dx_days_to), equals(2))
   expect_that(length(normalized_dataframe$last_contact_days_to), equals(2))
   expect_that(length(normalized_dataframe$vital_status), equals(2))
-
+  expect_that(length(normalized_dataframe$death_days_to), equals(2))
+  
 })
 
 
@@ -72,9 +74,10 @@ test_that('Should merge the two dataframes', {
         c('uuid1', 'uuid2'),
         c('barcode1', 'barcode2'),
         c('Alive', 'Dead'),
-        c('10', '11')
+        c('10', '11'),
+        c('12', '13')
       )
-      names(df) <- c('bcr_patientuuid', 'bcr_patient_barcode', 'vital_status', 'last_contact_days_to')
+      names(df) <- c('bcr_patientuuid', 'bcr_patient_barcode', 'vital_status', 'last_contact_days_to', 'death_days_to')
     } else { # New time Event
       df = data.frame(
         c('uuid1', 'uuid2'),
@@ -92,7 +95,7 @@ test_that('Should merge the two dataframes', {
   expect_that(length(df$vital_status), equals(2))
   expect_that(length(df$last_contact_days_to), equals(2))
   expect_that(length(df$new_tumor_event_dx_days_to), equals(2))
-  
+  expect_that(length(df$death_days_to), equals(2))  
 })
 
 
@@ -108,9 +111,11 @@ test_that('Patients without entry at NTE should be kept in the matching', {
         c('uuid1', 'uuid2'),
         c('barcode1', 'barcode2'),
         c('Alive', 'Dead'),
-        c('10', '11')
+        c('10', '11'),
+        c('[Not Available]', '11')
       )
-      names(df) <- c('bcr_patientuuid', 'bcr_patient_barcode', 'vital_status', 'last_contact_days_to')
+      names(df) <- c('bcr_patientuuid', 'bcr_patient_barcode', 'vital_status', 
+                     'last_contact_days_to', 'death_days_to')
     } else { # New time Event
       df = data.frame(
         c('uuid1'),
@@ -128,7 +133,8 @@ test_that('Patients without entry at NTE should be kept in the matching', {
   expect_that(length(df$vital_status), equals(2))
   expect_that(df$last_contact_days_to, equals(factor(c('10', '11'))))
   expect_that(df$new_tumor_event_dx_days_to, equals(factor(c('12', NA))))
-})
+  expect_that(df$death_days_to, equals(factor(c('[Not Available]', '11'))))
+  })
 
 #Filtering responsability at another task.
 test_that('Patients with duplicated entries at NTE should be kept in the matching', {
