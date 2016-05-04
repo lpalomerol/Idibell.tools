@@ -2,15 +2,13 @@
 
 getwd()
 
-head(mRX03)
-
 get_invasion_data <- function(filename){
   mRX03 <- read.csv(filename, sep='\t', header=FALSE)  
   invasion <- mRX03[1,]
   invasion  <- (invasion[-1:-3])
   colnames(invasion) <- c('C1','C2','C3', 'DC1','DC2', 'DC3')
   rownames(invasion) <- c('invasion')
-  as.numeric(invasion)
+  as.numeric(as.matrix(invasion))
 }  
 
 get_samples_data <- function(filename){
