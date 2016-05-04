@@ -51,11 +51,11 @@ test_that('Should keep base columns with complete followup dataframe provided', 
   normalized_dataframe = normalize_followup_dataframe(complete_dataframe)
 
   #Assert
-  expect_that(length(normalized_dataframe$bcr_patient_barcode), equals(2))
-  expect_that(length(normalized_dataframe$new_tumor_event_dx_days_to), equals(2))
-  expect_that(length(normalized_dataframe$last_contact_days_to), equals(2))
-  expect_that(length(normalized_dataframe$vital_status), equals(2))
-  expect_that(length(normalized_dataframe$death_days_to), equals(2))
+  expect_that(length(normalized_dataframe$barcode), equals(2))
+  expect_that(length(normalized_dataframe$last), equals(2))
+  expect_that(length(normalized_dataframe$death), equals(2))
+  expect_that(length(normalized_dataframe$recur), equals(2))
+  expect_that(length(normalized_dataframe$bcr_followup_barcode), equals(2))
   
 })
 
@@ -190,7 +190,7 @@ test_that('Should load and filter v1.5 follow up data successfully',{
   #Act
   df <- load_follow_up_data(sample_filename, v1_5)
   #Assert
-  expect_that(length(df$bcr_patient_barcode), equals(2))
+  expect_that(length(df$barcode), equals(2))
 })
 
 test_that('Should load and filter v2.1 follow up data successfully',{
@@ -200,7 +200,7 @@ test_that('Should load and filter v2.1 follow up data successfully',{
   #Act
   df <- load_follow_up_data(sample_filename, v2_1)
   #Assert
-  expect_that(length(df$bcr_patient_barcode), equals(2))
+  expect_that(length(df$barcode), equals(2))
 })
 
 
@@ -212,5 +212,5 @@ test_that('Should load and filter v4.0 follow up data successfully',{
   #Act
   df <- load_follow_up_data(sample_filename, v4_0)
   #Assert
-  expect_that(length(df$bcr_patient_barcode), equals(2))
+  expect_that(length(df$barcode), equals(2))
 })

@@ -37,7 +37,7 @@ traspose_and_normalize_expression_data <- function(expression_data){
 }
 
 build_patient_expression_dataset <- function(clinical_data, expression_data, fields_to_keep){
-  all_data = merge(clinical_data, expression_data, by = 'bcr_patient_barcode' )
+  all_data = merge(clinical_data, expression_data, by.y = 'bcr_patient_barcode', by.x='barcode' )
   normalize_events_dataset(all_data, fields_to_keep)
 }
 
@@ -53,6 +53,6 @@ normalize_events_dataset <- function(dataset, fields_to_keep = BASIC_SURVIVAL_FI
 build_surv_models <- function(dataframe){
   list(
     death = Surv(dataframe$time.death, dataframe$event.death==1),
-    recur = Surv(dataframe$time.recur, dataframe$time.recur==1)
+    recur = Surv(dataframe$time.recur, dataframe$event.recur==1)
   )
 }
