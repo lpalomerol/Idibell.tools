@@ -98,11 +98,37 @@ test_that('Should remove rows with invalid fields when they exist', {
 context('Filter_control_tissues tests')
 
 test_that('Should remove control tissues from gene expression dataframe', {
+
   #Arrange
-  
   BARCODE_TUMORIC = 'TCGA-02-0001-01C-01D-0182-01' #Fourth token starts with 0 -> tumor
   BARCODE_NORMAL = 'TCGA-02-0001-11C-01D-0182-01' #Fourth token starts with 1 -> normal
   BARCODE_CONTROL = 'TCGA-02-0001-21C-01D-0182-01' #Fourth token starts with 2 -> control
+  gene_expression_sample_dataframe <- data.frame(
+    c(BARCODE_TUMORIC, BARCODE_NORMAL, BARCODE_CONTROL),
+    c(1.000, 0.5, 1.2),
+    c(-1.000, -0.5, 0.3),
+    c(0.1, 0.2, 0.3)
+  )
+  names(gene_expression_sample_dataframe) = c('bcr_patient_barcode', 'GENE1', 'GENE2', 'GENE3')
+
+  #Act
+  filtered_gene_expression_sample_dataframe = filter_gene_expression_data(gene_expression_sample_dataframe)
+  row_kept = as.character(filtered_gene_expression_sample_dataframe[1,'bcr_patient_barcode'])
+
+  #Assert
+  expect_that(ncol(filtered_gene_expression_sample_dataframe), equals(4))
+  expect_that(nrow(filtered_gene_expression_sample_dataframe), equals(1))
+  expect_that(row_kept, equals(BARCODE_TUMORIC))
+
+})
+
+#Due a bug in the function
+test_that('Should take account alphanumeric ids', {
+  
+  #Arrange
+  BARCODE_TUMORIC = 'TCGA-AA-AAAA-01C-01D-0182-01' #Fourth token starts with 0 -> tumor
+  BARCODE_NORMAL = 'TCGA-AA-AAAA-11C-01D-0182-01' #Fourth token starts with 1 -> normal
+  BARCODE_CONTROL = 'TCGA-AA-AAAA-21C-01D-0182-01' #Fourth token starts with 2 -> control
   gene_expression_sample_dataframe <- data.frame(
     c(BARCODE_TUMORIC, BARCODE_NORMAL, BARCODE_CONTROL),
     c(1.000, 0.5, 1.2),
@@ -119,7 +145,6 @@ test_that('Should remove control tissues from gene expression dataframe', {
   expect_that(ncol(filtered_gene_expression_sample_dataframe), equals(4))
   expect_that(nrow(filtered_gene_expression_sample_dataframe), equals(1))
   expect_that(row_kept, equals(BARCODE_TUMORIC))
-
 })
 
 context('Remove_dupicated_samples tests')
