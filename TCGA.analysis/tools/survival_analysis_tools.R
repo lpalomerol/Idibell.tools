@@ -32,8 +32,23 @@ traspose_and_normalize_expression_data <- function(expression_data){
   rownames(expression_data) =  expression_data[,1]
   expression_data = expression_data[,-1]
   expression_data = as.data.frame(t(expression_data))
+  expression_data = filter_gene_expression_data(expression_data)
   expression_data[,1] = normalize_sample_names(expression_data[,1])
+  expression_data = remove_duplicated_samples(expression_data)
+
   return (expression_data)
+}
+
+filter_gene_expression_data <- function(gene_expression_data){
+  BARCODE_COLUMN = 1   
+  tumor_columns =as.character(gene_expression_data[,BARCODE_COLUMN,])
+  filtered = grepl("[TCGA-[0-9][0-9]-[0-9][0-9][0-9][0-9]-0[0-9]*", tumor_columns)
+  gene_expression_data[filtered,]
+}
+
+remove_duplicated_samples <- function(gene_expression_data) {
+  BARCODE_COLUMN = 1
+  gene_expression_data[!duplicated(gene_expression_data[, BARCODE_COLUMN]),]
 }
 
 build_patient_expression_dataset <- function(clinical_data, expression_data, fields_to_keep){

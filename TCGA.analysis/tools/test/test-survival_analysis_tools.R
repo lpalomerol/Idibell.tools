@@ -1,5 +1,5 @@
 library(testthat)
-
+#source('./survival_analysis_tools.R')
 context("Normalize_Events_Dataset tests")
 
 test_that("Should keep basic columns when fields_to_keep is not defined", {
@@ -73,7 +73,7 @@ test_that("Should keep basic columns when fields_to_keep is not defined", {
 })
 
 test_that('Should remove rows with invalid fields when they exist', {
-     #Arrange
+   #Arrange
    my_dataframe <- data.frame(
      c("0","1"),
      c("0","1"),
@@ -93,4 +93,56 @@ test_that('Should remove rows with invalid fields when they exist', {
    expect_that(length(normalized_dataset$time.death), equals(TOTAL_ROWS_AFTER_FILTER))
    expect_that(length(normalized_dataset$time.recur), equals(TOTAL_ROWS_AFTER_FILTER))
 
+})
+
+context('Filter_control_tissues tests')
+
+test_that('Should remove control tissues from gene expression dataframe', {
+  #Arrange
+  
+  BARCODE_TUMORIC = 'TCGA-02-0001-01C-01D-0182-01' #Fourth token starts with 0 -> tumor
+  BARCODE_NORMAL = 'TCGA-02-0001-11C-01D-0182-01' #Fourth token starts with 1 -> normal
+  BARCODE_CONTROL = 'TCGA-02-0001-21C-01D-0182-01' #Fourth token starts with 2 -> control
+  gene_expression_sample_dataframe <- data.frame(
+    c(BARCODE_TUMORIC, BARCODE_NORMAL, BARCODE_CONTROL),
+    c(1.000, 0.5, 1.2),
+    c(-1.000, -0.5, 0.3),
+    c(0.1, 0.2, 0.3)
+  )
+  names(gene_expression_sample_dataframe) = c('bcr_patient_barcode', 'GENE1', 'GENE2', 'GENE3')
+  
+  #Act
+  filtered_gene_expression_sample_dataframe = filter_gene_expression_data(gene_expression_sample_dataframe)
+  row_kept = as.character(filtered_gene_expression_sample_dataframe[1,'bcr_patient_barcode'])
+  
+  #Assert
+  expect_that(ncol(filtered_gene_expression_sample_dataframe), equals(4))
+  expect_that(nrow(filtered_gene_expression_sample_dataframe), equals(1))
+  expect_that(row_kept, equals(BARCODE_TUMORIC))
+
+})
+
+context('Remove_dupicated_samples tests')
+
+test_that('Should remove duplicated samples leaving only one when there are repeated patiens',{
+
+  #Arrange  
+  BARCODE_DUPE = 'TCGA-02-0001'
+  BARCODE_NO_DUPE = 'TCGA-02-0002'
+  gene_expression_sample_dataframe <- data.frame(
+    c(BARCODE_DUPE, BARCODE_NO_DUPE, BARCODE_DUPE),
+    c(1.000, 0.5, 1.2),
+    c(-1.000, -0.5, 0.3),
+    c(0.1, 0.2, 0.3)
+  )
+  
+  #Act
+  filtered_gene_expression_sample_dataframe = remove_duplicated_samples(gene_expression_sample_dataframe)
+  row_kept = as.character(filtered_gene_expression_sample_dataframe[,1])
+  
+  #Assert
+  expect_that(ncol(filtered_gene_expression_sample_dataframe), equals(4))
+  expect_that(nrow(filtered_gene_expression_sample_dataframe), equals(2))
+  expect_that(row_kept, equals(c(BARCODE_DUPE, BARCODE_NO_DUPE)))  
+  #Assert
 })
