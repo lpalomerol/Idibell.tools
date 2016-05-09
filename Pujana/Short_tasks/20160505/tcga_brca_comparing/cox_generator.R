@@ -6,10 +6,8 @@
 #  - Fisher test (low-high) (15')
 #  - Bartlett test (all groups) (15')
 # 4- Adjuntar los datos clínicos de seguimiento (30')
-# 5- Modelos de cox, por cada uno de los subgrupos... 
-#  - Modelo con una covariante AREG, incluyendo gráfica de survfit  (25')
-#  - Modelo con una covariante AHR, incluyendo gráfica de survfit (10')
-#  - Modelo con dos covariantes AHR, incluyendo gráfica de survfit ('10')
+# 5- Crear logrank test dels dos grups extrems de BRCA, tenint en conte ...
+#  les covariants
 
 library(survival)
 
@@ -27,9 +25,10 @@ expression_data.t$BRCA1_g = ifelse(expression_data.t$BRCA1< -1.8644033  , 0,
                                    ifelse(expression_data.t$BRCA1< -1.2340033 , 1,2)
 )
 
-# 3 - Adjuntar datos de seguimiento
+# 4 - Adjuntar datos de seguimiento
 head(expression_data.t)
 
+#Normalizar los barcodes
 expression_data.t$barcode = rownames(expression_data.t)
 expression_data.t$barcode= substr(expression_data.t$barcode, 0,12)
 expression_data.t$barcode= gsub('\\.', '-', expression_data.t$barcode)
@@ -38,50 +37,52 @@ expression_data.t
 follow_up <- read.csv('./data/brca_followup.txt')
 head(follow_up)
 
-ftot = merge(follow_up, expression_data.t, by='barcode')
+ftot = merge(follow_up, expression_data.t, by='barcode', all=F)
 
-# 4 - Generar los modelos de Cox
-attach(ftot)
+# 5 - Generar los modelos de Cox -> LOGRANK tests
 
-ftot.low = ftot[ftot$BRCA1_g==0,]
-ftot.low.surv = Surv(ftot.low$time.death, ftot.low$event.death==1)
+model <- Surv(data$time.death, data$event.death==1)
 
-#MODEL DE COX PER GRUP LOW I GEN AREG
-coxph(ftot.low.surv~AREG, data=ftot.low)
-#MODEL DE COX PER GRUP LOW I GEN AHR
-coxph(ftot.low.surv~AHR, data=ftot.low)
+getLoglikP <- function(model_complex,model_simple, degrees){
+  LRT = (-2)*(model_simple$loglik[2]-model_complex$loglik[2])
+  Pvalue = 1 - pchisq(LRT, degrees)
+  Pvalue
+}
 
-ftot.mid = ftot[ftot$BRCA1_g==1,]
-ftot.mid.surv = Surv(ftot.mid$time.death, ftot.mid$event.death==1)
-#MODEL DE COX PER GRUP MID I GEN AHR
-coxph(ftot.mid.surv~AREG, data=ftot.mid)
-#MODEL DE COX PER GRUP MID I GEN AHR
-coxph(ftot.mid.surv~AHR, data=ftot.mid)
+generate_survivals <- function(model, data){
+ 
+  list(
+    km = survfit(model~data$BRCA1_g),
+    diff.base =  survdiff(model~data$BRCA1_g),
+    cox.base =  coxph(model~data$BRCA1_g),
+    cox.areg = coxph(model~data$BRCA1_g+data$AREG),
+    cox.ahr =  coxph(model~data$BRCA1_g+data$AHR),
+    cox.areg_ahr = coxph(model~data$BRCA1_g + data$AHR + data$AREG),
+    cox.interaction = coxph(model~data$BRCA1_g + data$AHR + data$AREG  + 
+                              data$BRCA1_g * data$AHR + data$BRCA1_g * data$AREG )
+  )
 
-ftot.high = ftot[ftot$BRCA1_g==2,]
-ftot.high.surv = Surv(ftot.high$time.death, ftot.high$event.death==1)
-#MODEL DE COX PER GRUP HIGH I GEN AHR
-coxph(ftot.high.surv~AREG, data=ftot.high)
-#MODEL DE COX PER GRUP HIGH I GEN AHR
-coxph(ftot.high.surv~AHR, data=ftot.high)
+}
 
-ftot.surv = Surv(ftot$time.death, ftot$event.death==1)
+ftot.extreme = ftot[ftot$BRCA1_g != 1,]
 
-png('./output/km_brca1.png')
-plot(survfit(ftot.surv~ftot$BRCA1_g),
-     lty=1:3, mark=3,
-     col=c('red','green','blue'),
-     main='KM for BRCA1 groups')
-legend('bottomleft', c('low','mid','high'),
-       col=c('red','green','blue'),
-       lty=1:3
- )
-dev.off()
+model <- Surv(ftot.extreme$time.death, ftot.extreme$event.death==1)
+(ftot.ex.death.surv <- generate_survivals(model, ftot.extreme))
 
-help(plot)
+model <- Surv(ftot.extreme$time.recur, ftot.extreme$event.recur==1)
+ftot.ex.recur.surv <- generate_survivals(model, ftot.extreme)
 
-coxph(ftot.surv~AREG, data=ftot)
-coxph(ftot.surv~AHR, data=ftot)
+model <- Surv(ftot$time.death, ftot$event.death==1)
+ftot.death.surv <- generate_survivals(model, ftot)
 
-detach(ftot)
+model <- Surv(ftot$time.recur, ftot$event.recur==1)
+ftot.recur.surv <- generate_survivals(model, ftot)
 
+(ftot.ex.death.surv)
+
+getLoglikP(ftot.ex.death.surv$cox.interaction, ftot.ex.death.surv$cox.areg_ahr, 2)
+getLoglikP(ftot.ex.recur.surv$cox.interaction, ftot.ex.recur.surv$cox.areg_ahr, 2)
+
+
+
+summary(ftot.ex.recur.surv$cox.ahr)
