@@ -5,12 +5,12 @@ BASIC_SURVIVAL_FIELDS = c(
 
 #Functions
 
-load_clinical_data <- function(location){
-  read.csv(location, head=T, sep='\t')
+load_clinical_data <- function(location, sep='\t'){
+  read.csv(location, head=T, sep=sep)
 }
 
-load_gene_expression_data <- function(location){
-  expression_data <- read.csv(location, head=F, sep=' ')
+load_gene_expression_data <- function(location, sep=' '){
+  expression_data <- read.csv(location, head=F, sep=sep)
   traspose_and_normalize_expression_data(expression_data)
 
 }
