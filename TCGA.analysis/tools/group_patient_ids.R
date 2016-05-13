@@ -1,4 +1,5 @@
 #Retrieves the list of patients and groups by tumoric-normal samples
+return();
 getwd()
 patient_ids_file  <- './data/data_expression_equivalencies.txt' 
 output_file <-  './output/expression_by_patient.txt'

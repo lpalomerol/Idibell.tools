@@ -42,7 +42,7 @@ traspose_and_normalize_expression_data <- function(expression_data){
 filter_gene_expression_data <- function(gene_expression_data){
   BARCODE_COLUMN = 1   
   tumor_columns =as.character(gene_expression_data[,BARCODE_COLUMN,])
-  filtered = grepl("TCGA-[[:alnum:]]{2}-[[:alnum:]]{4}-0[0-9]*", tumor_columns)
+  filtered = grepl("TCGA[.-][[:alnum:]]{2}[.-][[:alnum:]]{4}[.-]0[0-9]*", tumor_columns)
   gene_expression_data[filtered,]
 }
 

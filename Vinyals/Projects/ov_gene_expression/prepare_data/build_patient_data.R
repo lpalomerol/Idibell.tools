@@ -28,3 +28,4 @@ somatic_mutations_file =  './data/somatic.maf'
 somatic_mutations = somatic_mutations.loader(somatic_mutations_file)
 
 clinical_data_expanded = merge(clinical_data, tumor_data, by="bcr_patient_barcode")
+

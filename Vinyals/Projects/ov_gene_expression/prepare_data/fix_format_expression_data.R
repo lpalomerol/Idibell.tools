@@ -1,7 +1,6 @@
 getwd()
 
 raw_expression_data <- read.csv('./data/expression.txt')
-# DF[ , !(names(DF) %in% drops)]
 
 expression_data = raw_expression_data[, !(names(raw_expression_data) %in% c('X'))]
 colnames(expression_data) <- gsub('\\.', '-', colnames(expression_data))
