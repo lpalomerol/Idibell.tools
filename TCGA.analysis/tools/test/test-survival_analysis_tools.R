@@ -147,6 +147,53 @@ test_that('Should take account alphanumeric ids', {
   expect_that(row_kept, equals(BARCODE_TUMORIC))
 })
 
+test_that('Should do valid filter when TCGA ids are separed by dots', {
+  
+  #Arrange
+  BARCODE_TUMORIC = 'TCGA.AA.AAAA.01C.01D.0182.01' #Fourth token starts with 0 -> tumor
+  BARCODE_NORMAL = 'TCGA.AA.AAAA.11C.01D.0182.01' #Fourth token starts with 1 -> normal
+  BARCODE_CONTROL = 'TCGA.AA.AAAA.21C.01D.0182.01' #Fourth token starts with 2 -> control
+  gene_expression_sample_dataframe <- data.frame(
+    c(BARCODE_TUMORIC, BARCODE_NORMAL, BARCODE_CONTROL),
+    c(1.000, 0.5, 1.2),
+    c(-1.000, -0.5, 0.3),
+    c(0.1, 0.2, 0.3)
+  )
+  names(gene_expression_sample_dataframe) = c('bcr_patient_barcode', 'GENE1', 'GENE2', 'GENE3')
+  
+  #Act
+  filtered_gene_expression_sample_dataframe = filter_gene_expression_data(gene_expression_sample_dataframe)
+  row_kept = as.character(filtered_gene_expression_sample_dataframe[1,'bcr_patient_barcode'])
+  
+  #Assert
+  expect_that(ncol(filtered_gene_expression_sample_dataframe), equals(4))
+  expect_that(nrow(filtered_gene_expression_sample_dataframe), equals(1))
+  expect_that(row_kept, equals(BARCODE_TUMORIC))
+})
+
+test_that('Should not filter tcga codes with non accepted separators', {
+  
+  #Arrange
+  BARCODE_WRONG1 = 'TCGA\\AA\\AAAA\\01C\\01D\\0182\\01' #Fourth token starts with 0 -> tumor
+  BARCODE_WRONG2 = 'TCGA_AA_AAAA_01C_01D_0182_01' #Fourth token starts with 1 -> normal
+  BARCODE_WRONG3 = 'TCGAxAAxAAAAx01Cx01Dx0182x01' #Fourth token starts with 2 -> control
+  gene_expression_sample_dataframe <- data.frame(
+    c(BARCODE_WRONG1, BARCODE_WRONG2, BARCODE_WRONG3),
+    c(1.000, 0.5, 1.2),
+    c(-1.000, -0.5, 0.3),
+    c(0.1, 0.2, 0.3)
+  )
+  names(gene_expression_sample_dataframe) = c('bcr_patient_barcode', 'GENE1', 'GENE2', 'GENE3')
+  
+  #Act
+  filtered_gene_expression_sample_dataframe = filter_gene_expression_data(gene_expression_sample_dataframe)
+  row_kept = as.character(filtered_gene_expression_sample_dataframe[1,'bcr_patient_barcode'])
+  
+  #Assert
+  expect_that(ncol(filtered_gene_expression_sample_dataframe), equals(4))
+  expect_that(nrow(filtered_gene_expression_sample_dataframe), equals(0))
+})
+
 context('Remove_dupicated_samples tests')
 
 test_that('Should remove duplicated samples leaving only one when there are repeated patiens',{

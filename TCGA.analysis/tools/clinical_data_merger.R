@@ -2,11 +2,11 @@
 # Merges clinical data files and generates new output files
 # Author: Luis Palomero, 2016/04/25
 ############################################################
-
+return();
 
 #External functions
-source('tools/follow_up_dataframe_tools.R')
-source('tools/clinical_data_dataframe_tools.R')
+source('./follow_up_dataframe_tools.R')
+source('./clinical_data_dataframe_tools.R')
 
 #The code
 dataframes <- list(
