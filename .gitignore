@@ -7,6 +7,12 @@ output/
 data/
 *.png
 *.rar
+*.log
+*.pdf
+*.gz
+*.tex
+*.sty
+
 
 # Windows image file caches
 Thumbs.db

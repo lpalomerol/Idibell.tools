@@ -1,0 +1,431 @@
+
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+
+\title{Comparación de niveles de Expresión BRCA2 / AHR - AREG}
+\date{\today}
+\author{Luis Palomero López de Armentia}
+
+\begin{document}
+\maketitle
+
+\section{Objetivo}
+
+Comprobar la hipótesis de que los niveles de expresión de los genes AHR y AREG 
+son diferentes según el nivel de expresión del gen BRCA2.
+
+\section{Proceso}
+
+
+\subsection{Preparación de datos}
+
+Se cargan los datos en memoria y se agrupan los niveles de expresión por tertiles.
+<<>>=
+ROOT_DIRECTORY = '../../../..'
+DATA_FOLDER_DIRECTORY = './data'
+
+source(
+  paste(ROOT_DIRECTORY, '/TCGA.analysis/tools/survival_analysis_tools.R', sep='')
+)
+
+expression_data_file <-   paste(DATA_FOLDER_DIRECTORY, '/data_expression_genes.txt', sep='')
+expression_data <- load_gene_expression_data(expression_data_file,sep=' ')
+
+rownames(expression_data) <- expression_data$bcr_patient_barcode
+expression_data$AHR = as.numeric(as.character(expression_data$AHR))
+expression_data$AREG = as.numeric(as.character(expression_data$AREG))
+expression_data$BRCA2 = as.numeric(as.character(expression_data$BRCA2))
+
+# 2 - Crear grupos
+tertiles = quantile(expression_data$BRCA2, c(0,0.33,0.66,1))
+expression_data$BRCA2_g = ifelse(expression_data$BRCA2< tertiles[2], 0,
+                                   ifelse(expression_data$BRCA2< tertiles[3] ,                                                                                                                                   1,2)
+)
+
+@
+
+La figura \ref{fig:hist} muestra el histograma de división de muestras.
+
+<<hist, fig.cap="Histograma del número de muestras por cada tertil BRCA2">>=
+hist(expression_data$BRCA2_g, 
+     main="Histograma del número de muestras por cada tertil BRCA2",
+     xlab="Tertil", ylab="Número de muestras")
+@
+
+\subsection{Comparación de niveles de expresión}
+
+
+<<boxplot_areg,fig.cap="Boxplot para la relación AREG ~ BRCA2">>=
+attach(expression_data)
+
+boxplot(AREG~BRCA2_g, main="AREG ~ BRCA2 groups",
+        xlab='BRCA1 group', ylab='AREG expression level',
+        names=c('Low', 'Mid', 'High'))
+
+@
+
+<<boxplot_ahr, fig.cap="Boxplot para la relación AHR ~ BRCA2">>=
+boxplot(AHR~BRCA2_g, main="AHR ~ BRCA2 groups",
+        xlab='BRCA1 group', ylab='AHR expression level',
+        names=c('Low', 'Mid', 'High'))
+
+detach(expression_data)
+@
+
+Se comparan los niveles de expresión de AHR y AREG para los pacientes en todos los tertiles, véase las figuras  \ref{fig:boxplot_areg} y \ref{fig:boxplot_ahr}
+\subsection{T-Tests - medias}
+
+Se realizan los t-test comparando todos los tertiles entre ellos (inferior-medio, inferior-superior, medio-superior).  
+Se busca rechazar la hipótesis nula de que las medias de expresión son equivalentes para todos los subconjuntos.
+
+\subsubsection{Comparación de los niveles de expresión del gen AREG}
+
+<<t_tests_areg>>=
+attach(expression_data)
+
+t.test(
+  expression_data[BRCA2_g==0, 'AREG'],
+  expression_data[BRCA2_g==1, 'AREG']
+)
+t.test(
+  expression_data[BRCA2_g==0, 'AREG'],
+  expression_data[BRCA2_g==2, 'AREG']
+)
+t.test(
+  expression_data[BRCA2_g==1, 'AREG'],
+  expression_data[BRCA2_g==2, 'AREG']
+)
+
+detach(expression_data)
+
+@
+
+Observamos que los p-valores de los t-tests de las comparaciones del grupo HIGH
+con los grupos MID y LOW son inferiores al umbral por defecto de significancia.
+
+\subsubsection{Comparación de los niveles de expresión del gen AHR}
+
+<<t_tests_ahr>>=
+
+attach(expression_data)
+
+t.test(
+  expression_data[BRCA2_g==0, 'AHR'],
+  expression_data[BRCA2_g==1, 'AHR']
+)
+t.test(
+  expression_data[BRCA2_g==0, 'AHR'],
+  expression_data[BRCA2_g==2, 'AHR']
+)
+t.test(
+  expression_data[BRCA2_g==1, 'AHR'],
+  expression_data[BRCA2_g==2, 'AHR']
+)
+detach(expression_data)
+
+@
+
+
+No se observa ninguna diferencia estadísticamente significativa contra las 
+hipótesis nulas de igualdad de medias en los tres conjuntos. 
+
+\subsection{Barlett tests - varianzas}
+
+Buscamos chequear la hipótesis nula de que las varianzas son equivalentes.
+
+<<variances>>=
+
+attach(expression_data)
+
+kable(
+  list (
+   c('', 'BRCA2~AHR', 'BRCA2~AREG'),
+   c('LOW', 
+     round(var(expression_data[BRCA2_g==0, 'AHR']),3),
+     round(var(expression_data[BRCA2_g==0, 'AREG']),3)),
+   c('MID', 
+     round(var(expression_data[BRCA2_g==1, 'AHR']),3),
+     round(var(expression_data[BRCA2_g==1, 'AREG']),3)),
+   c('HIGH',
+     round(var(expression_data[BRCA2_g==2, 'AHR']),3),
+     round(var(expression_data[BRCA2_g==2, 'AREG']),3))
+  )
+)
+detach(expression_data)
+@
+
+<<bartlett>>=
+attach(expression_data)
+bartlett.test(AREG ~ BRCA2_g)
+bartlett.test(AHR ~ BRCA2_g)
+detach(expression_data)
+@
+
+
+Los test de Bartlett han devuelto valores estadísticamente significativos contra 
+la hipótesis nula de igualdad de varianzas.
+
+
+
+\subsection{Shapiro tests - normalidad}
+
+Esta sección incluye tests realizados para comprobar si se encuentra evidencia
+estadística contra la hipótesis nula de que los datos siguen una distribución normal,
+siendo la alternativa la hipótesis de que no los siguen.
+
+
+<<shapiro>>=
+attach(expression_data)
+shapiro.test(BRCA2)
+shapiro.test(AHR)
+shapiro.test(AREG)
+detach(expression_data)
+
+@
+
+
+<<qqplot_brca2, fig.cap="QQplot de los niveles de expresión de BRCA2">>=
+attach(expression_data)
+qqnorm(BRCA2, main='qq-plot BRCA2')
+qqline(BRCA2)
+detach(expression_data)
+@
+
+<<qqplot_areg, fig.cap="QQplot de los niveles de expresión de AREG">>=
+attach(expression_data)
+qqnorm(AREG, main='qq-plot AREG')
+qqline(AREG)
+detach(expression_data)
+@
+
+
+<<qqplot_ahr, fig.cap="QQplot de los niveles de expresión de AHR">>=
+attach(expression_data)
+qqnorm(AHR, main='qq-plot AHR')
+qqline(AHR)
+detach(expression_data)
+@
+
+Se observa tanto en los tests como en las gráficas \ref{fig:qqplot_brca2},
+\ref{fig:qqplot_areg} y \ref{fig:qqplot_ahr} que los datos no siguen una distribución
+normal. Los qq-plot muestran que los cuantiles inferiores no se ajustan a la normalidad.
+
+\section{Modelos de supervivencia}
+
+Esta parte del análisis incluye los chequeos básicos para comprobar si las curvas
+de supervivencia para los eventos de muerte y recurrencia están influidas por los
+niveles de expresión del gen BRCA2 y la relación con los niveles de expresión AHR y AREG.
+
+Se separan los pacientes por tres grupos según los tertiles de los niveles de expresión de BRCA2.
+
+<<load_followup_data>>=
+
+follow_up_data = paste( DATA_FOLDER_DIRECTORY, 'brca_followup.txt', sep='/'  )
+follow_up <- read.csv(follow_up_data)
+follow_up = follow_up[!duplicated(follow_up$barcode),]
+
+expression_data$BRCA_median_g = ifelse(expression_data$BRCA2 <   
+                                         median(expression_data$BRCA2), 0,1)
+expression_data$BRCA_low_tertile = ifelse(expression_data$BRCA2_g==0, 0,1)
+
+ftot = merge(follow_up, expression_data, 
+             by.x='barcode', by.y='bcr_patient_barcode', all=F)
+
+@
+
+
+\subsection{Hipótesis de igualdad de curvas}
+
+El objetivo de este subconjunto de análisis demuestra que se ha encontrado una 
+diferencia estadísticamente significativa con las curvas de supervivencia para los grupos 
+BRCA2. En este caso se definen dos tipos de grupos: 
+\begin{itemize}
+  \item Separar las muestras por tertiles del nivel de expresión de BRCA2.
+  \item Separar las muestras por mediana del nivel de expresión BRCA2.
+\end{itemize}
+
+<<survival_lib, echo=FALSE>>=
+library(survival)
+
+km_plot <- function(km, title){
+  plot(km, col=c('red', 'blue'), lty='solid',
+       xlab='Survival time', ylab='Survival probabilities',
+       mark=3, main=title
+  )
+
+  legend('bottomleft', c('Low tertile', 'High tertiles'),
+         lty='solid', col=c('red', 'blue')
+  )
+}
+
+
+@
+
+Para poder determinar si hay diferencias entre las curvas se obtienen los modelos
+de supervivencia y se observa el estadístico log-rank.
+
+<<survival_models>>=
+death.model <- Surv(ftot$time.death, ftot$event.death==1)
+recur.model <- Surv(ftot$time.recur, ftot$event.recur==1)
+
+survdiff(death.model~ftot$BRCA_low_tertile)
+survdiff(recur.model~ftot$BRCA_low_tertile)
+
+survdiff(death.model~ftot$BRCA_median_g)
+survdiff(recur.model~ftot$BRCA_median_g)
+
+@
+
+No se ha encontrado ningún valor estadísticamente significativo contra la hipótesis 
+nula de que las curvas de supervivencia son equivalenes independientemente del grupo.
+
+Aún así, las curvas KM (figuras \ref{fig:surv_1}, \ref{fig:surv_2},\ref{fig:surv_3},\ref{fig:surv_4}),   parecen sugerir que a menor nivel de expresión del gen BRCA2, 
+peores posibilidades de supervivencia y recursión.
+
+<<surv_1, fig.cap="Curvas de supervivencia para el evento muerte agrupando por tertiles">>=
+km_plot(
+  survfit(death.model~ftot$BRCA_low_tertile),
+        'Death time - by tertiles'
+  
+)
+@
+
+<<surv_2, fig.cap="Curvas de supervivencia para el evento recurrencia agrupando por tertiles">>=
+km_plot(
+  survfit(recur.model~ftot$BRCA_low_tertile),
+        'Recurrency time - by tertiles'
+  
+)
+@
+
+
+
+<<surv_3, fig.cap="Curvas de supervivencia para el evento muerte agrupando por medianas">>=
+km_plot(
+  survfit(death.model~ftot$BRCA_median_g),
+        'Death time - by median'
+  
+)
+@
+
+<<surv_4, fig.cap="Curvas de supervivencia para el evento recurrencia agrupando por mediana">>=
+km_plot(
+  survfit(recur.model~ftot$BRCA_median_g),
+        'Recurrency time - by median'
+  
+)
+@
+
+
+\subsection{Comprobación de una posible interacción entre los niveles BRCA2 y AREG}
+
+Los siguientes análisis buscan determinar si los datos de supervivencia son estadísticamente
+significativos en contra de la hipótesis nula de que no existe interacción entre los
+niveles del gen BRCA2 y los niveles de expresión del gen AREG, tanto para los 
+eventos de muert como los de recurrencia.
+
+<<interaction_AREG>>=
+attach(ftot)
+coxph(death.model~BRCA_low_tertile +AREG + BRCA_low_tertile *AREG)
+coxph(death.model~BRCA_median_g +AREG + BRCA_median_g *AREG)
+
+coxph(recur.model~BRCA_low_tertile +AREG + BRCA_low_tertile *AREG)
+coxph(recur.model~BRCA_median_g +AREG + BRCA_median_g *AREG)
+detach(ftot)
+@
+
+No se han encontrado valores lo suficientemente significativos contra la hipótesis nula
+de que no existe interacción entre los niveles de expresión de ambos genes. Como mucho se puede
+hacer notar de que se ha encontrado un p-valor muy cercano al umbral\footnote{Umbral por defecto del 5\%} 
+de significancia en caso de la interacción entre los niveles de expresión de AREG y la mediana de BRCA2
+
+
+\subsection{Comprobación de una posible interacción entre los niveles BRCA2 y AHR}
+
+Los siguientes análisis buscan determinar si los datos de supervivencia son estadísticamente
+significativos en contra de la hipótesis nula de que no existe interacción entre los
+niveles del gen BRCA2 y los niveles de expresión del gen AREG, tanto para los 
+eventos de muert como los de recurrencia.
+
+<<interaction_AHR>>=
+attach(ftot)
+coxph(death.model~BRCA_low_tertile + AHR+ BRCA_low_tertile *AHR)
+coxph(death.model~BRCA_median_g + AHR + BRCA_median_g *AHR)
+
+coxph(recur.model~BRCA_low_tertile + AHR + BRCA_low_tertile *AHR)
+coxph(recur.model~BRCA_median_g + AHR + BRCA_median_g *AHR)
+detach(ftot)
+@
+
+
+\subsection{Comprobación sobre la influencia de los niveles AREG en el modelo básico de supervivencia para los eventos de muerte}
+
+<<influence_AREG>>=
+attach(ftot)
+summary(coxph(death.model~BRCA_low_tertile))
+summary(coxph(death.model~BRCA_low_tertile +AREG))
+summary(coxph(death.model~BRCA_median_g))
+summary(coxph(death.model~BRCA_median_g +AREG))
+detach(ftot)
+@
+
+La comparación de los modelos básicos que compararn AREG con BRCA2 y los eventos de muerte 
+no indica que los modelos que incluyen los niveles de expresión del gen AREG influyan 
+en los modelos de supervivencia básicos: tanto los \textit{hazard ratio} 
+como los p-valores e intervalos de confianza son muy similares.
+
+
+\subsection{Comprobación sobre la influencia de los niveles AREG en el modelo básico de supervivencia para los eventos de recurrencia}
+
+<<influence_AREG_recur>>=
+attach(ftot)
+summary(coxph(recur.model~BRCA_low_tertile))
+summary(coxph(recur.model~BRCA_low_tertile + AREG))
+summary(coxph(recur.model~BRCA_median_g))
+summary(coxph(recur.model~BRCA_median_g + AREG))
+detach(ftot)
+@
+
+La comparación de los modelos básicos que compararn AREG con BRCA2 y los eventos de muerte 
+no indica que los modelos que incluyen los niveles de expresión del gen AREG influyan 
+en los modelos de supervivencia básicos: tanto los \textit{hazard ratio} 
+como los p-valores e intervalos de confianza son muy similares.
+
+
+
+\subsection{Comprobación sobre la influencia de los niveles AHR en el modelo básico de supervivencia para los eventos de muerte}
+
+<<influence_AHR>>=
+attach(ftot)
+summary(coxph(death.model~BRCA_low_tertile))
+summary(coxph(death.model~BRCA_low_tertile + AHR))
+summary(coxph(death.model~BRCA_median_g))
+summary(coxph(death.model~BRCA_median_g + AHR))
+detach(ftot)
+@
+En este caso se observa que los modelos que no tienen en cuenta los niveles de expresión 
+del gen AHR muestran unos intervalos de confianza más amplios que aquellos que no 
+tienen en cuenta este factor. Por tanto, se considera que éstos modelos explican peor la 
+realidad que aquellos más sencillos.
+
+
+\subsection{Comprobación sobre la influencia de los niveles AHR en el modelo básico de supervivencia para los eventos de recurrencia}
+
+<<influence_AHR_recur>>=
+attach(ftot)
+summary(coxph(recur.model~BRCA_low_tertile))
+summary(coxph(recur.model~BRCA_low_tertile +AHR))
+summary(coxph(recur.model~BRCA_median_g))
+summary(coxph(recur.model~BRCA_median_g +AHR))
+detach(ftot)
+@
+
+En este caso se observa que los modelos que no tienen en cuenta los niveles de expresión 
+del gen AHR muestran unos intervalos de confianza más amplios que aquellos que no 
+tienen en cuenta este factor. Por tanto, se considera que éstos modelos explican peor la 
+realidad que aquellos más sencillos.
+
+
+
+\end{document}
