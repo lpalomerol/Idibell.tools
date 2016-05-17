@@ -66,15 +66,18 @@ retrieve_p_values <- function(all_data){
     clinical_stage_p = numeric(0),
     brca_tertile_t = numeric(0),
     brca_tertile_p = numeric(0),
-    brca_mutant_t = numeric(0),
-    brca_mutant_p = numeric(0)
+    brca2_mutant_t = numeric(0),
+    brca2_mutant_p = numeric(0),
+    brca1_2_mutant_t = numeric(0),
+    brca1_2_mutant_t = numeric(0)
   )
   
   expression_matrix = all_data[,
     !(colnames(all_data) %in% c('bcr_patient_barcode', 'tumor_grade', 
                       'vascular_invasion_indicator', 'clinical_stage',
                       'lymphovascular_invasion_indicator', 
-                      'BRCA2_tertile_group', 'BRCA2_mutant'))
+                      'BRCA2_tertile_group', 'BRCA2_mutant',
+                      'BRCA1_2_mutant'))
   ]
 
   cols = colnames(expression_matrix)
@@ -117,7 +120,13 @@ retrieve_p_values <- function(all_data){
                                         c('NO'), 
                                         c('YES')
     )  
-        
+
+    groups_brca1_2_mutant  = create_groups(expression_matrix[,i],
+                                        all_data[,'BRCA1_2_mutant'], 
+                                        c('NO'), 
+                                        c('YES')
+    )      
+            
     shapiro = shapiro.test(expression_matrix[,i])
     vascular_invasion_test = compare_groups(groups_vascular$groupA, 
                                             groups_vascular$groupB)
@@ -129,9 +138,11 @@ retrieve_p_values <- function(all_data){
                                       groups_tumor_grade$groupB)
     brca_tertile_test = compare_groups(groups_brca_tertile$groupA, 
                                        groups_brca_tertile$groupB)
-    brca_mutant_test = compare_groups(groups_brca_mutant$groupA, 
-                                      groups_brca_mutant$groupB)
-
+    brca2_mutant_test = compare_groups(groups_brca_mutant$groupA, 
+                                       groups_brca_mutant$groupB)
+    brca1_2_mutant_test = compare_groups(groups_brca1_2_mutant$groupA, 
+                                       groups_brca1_2_mutant$groupB)
+    
     output[name,] = c(
       shapiro = shapiro$p.value,
       vascular_invasion_t = vascular_invasion_test$statistic,
@@ -144,9 +155,11 @@ retrieve_p_values <- function(all_data){
       tumor_grade_p =tumor_grade_test$p.value,
       brca_tertile_t = brca_tertile_test$statistic,
       brca_tertile_p = brca_tertile_test$p.value,
-      brca_mutant_t = brca_mutant_test$statistic,
-      brca_mutant_p = brca_mutant_test$p.value
-    )
+      brca2_mutant_t = brca2_mutant_test$statistic,
+      brca2_mutant_p = brca2_mutant_test$p.value,
+      brca1_2_mutant_t = brca1_2_mutant_test$statistic,
+      brca1_2_mutant_p = brca1_2_mutant_test$p.value
+      )
 
   }  
    output
@@ -169,9 +182,15 @@ expression_data = lapply(expression_data, function(row){as.numeric(as.character(
 expression_data$bcr_patient_barcode = barcodes 
 
 #Read and prepare BRCA2 mutated data file
-mutated_brca <- read.csv(
+mutated_brca2 <- read.csv(
   paste(DATA_FOLDER_DIRECTORY, '/brca2_mutated.txt', sep='')
 )
+
+#Read and prepare BRCA1+BRCA2 mutated data file
+mutated_brca1_2 <- read.csv(
+  paste(DATA_FOLDER_DIRECTORY, '/brca1_2_mutated.txt', sep='')
+)
+
 
 #Merge all data files and add BRCA2 expression columns
 all_data= merge(clinical_data, expression_data, by="bcr_patient_barcode")
@@ -184,8 +203,13 @@ all_data$BRCA2_tertile_group = cut(
 )
 
 all_data$BRCA2_mutant = ifelse(
-  all_data$bcr_patient_barcode %in% mutated_brca$bcr_patient_barcode, 'YES', 'NO'
+  all_data$bcr_patient_barcode %in% mutated_brca2$bcr_patient_barcode, 'YES', 'NO'
+)
+
+all_data$BRCA1_2_mutant = ifelse(
+  all_data$bcr_patient_barcode %in% mutated_brca1_2$bcr_patient_barcode, 'YES', 'NO'
 )
 
 tests = (retrieve_p_values(all_data))
+head(tests)
 write.csv(tests, './output/t_tests.txt')

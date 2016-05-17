@@ -1,6 +1,7 @@
 ##################################################################
+## How was created brca1_2_mutated.txt file
 ## How was created brca2_mutated.txt file
 ##################################################################
 
 brca2_mutated.txt file was created manually from SOMATIC.MAF file, retrieving
-the list of BRCA2 mutated tumors (column Tumor_sample_barcode)
+the list of BRCA1 + BRCA2 (or only BRCA2) mutated tumors (column Tumor_sample_barcode) 
