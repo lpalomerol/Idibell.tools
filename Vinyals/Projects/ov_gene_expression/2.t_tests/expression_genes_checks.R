@@ -1,12 +1,18 @@
 ROOT_DIRECTORY = '../../../..'
 DATA_FOLDER_DIRECTORY = '../prepare_data/output'
 
+library(survival)
+
 source(
   paste(ROOT_DIRECTORY, '/TCGA.analysis/tools/lib/clinical_data/loader.R', sep='')
 )
 
 source(
   paste(ROOT_DIRECTORY, '/TCGA.analysis/tools/survival_analysis_tools.R', sep='')
+)
+
+source(
+  paste(ROOT_DIRECTORY, '/TCGA.analysis/tools/lib/followup/load.R', sep='')
 )
 
 
@@ -23,14 +29,18 @@ compare_groups <- function(groupA, groupB){
   t.test(groupA, groupB)
 }
 
-create_group_tertiles <- function(data, disriminating){
-  groups = 
-    cut(
-      discriminating,
-      breaks = quantile(all_data$BRCA1, probs=seq(0,1, by=0.33), na.rm =TRUE), 
-      labels=c('LOW','MED', 'HIGH'),
-      include.lowest= TRUE
+check_cox <- function(surv, expressions){
+
+  expression_median = median(expressions, na.rm=TRUE)
+  median_group = ifelse(expressions < expression_median, 0,1 )
+  cox = coxph(surv ~ median_group)
+  return(
+    list(
+      model = cox,
+      hazard.ratio =summary(cox)$coefficients[2],
+      p.value =summary(cox)$coefficients[5]
     )
+  )
 }
 
 join_subgroups <- function(data, subgroups){
@@ -69,17 +79,27 @@ retrieve_p_values <- function(all_data){
     brca2_mutant_t = numeric(0),
     brca2_mutant_p = numeric(0),
     brca1_2_mutant_t = numeric(0),
-    brca1_2_mutant_t = numeric(0)
+    brca1_2_mutant_p = numeric(0),
+    relapse_cox_hr = numeric(0),
+    relapse_cox_p = numeric(0)
   )
-  
+
+  non_expression_columns = c(
+    'bcr_patient_barcode', 'tumor_grade', 
+    'vascular_invasion_indicator', 'clinical_stage',
+    'lymphovascular_invasion_indicator', 
+    'BRCA2_tertile_group', 'BRCA2_mutant',
+    'BRCA1_2_mutant',"X",
+    "last", "death", "recur", "bcr_followup_barcode",  "time.death",
+    "event.death", "time.recur", "event.recur"
+  )  
+
   expression_matrix = all_data[,
-    !(colnames(all_data) %in% c('bcr_patient_barcode', 'tumor_grade', 
-                      'vascular_invasion_indicator', 'clinical_stage',
-                      'lymphovascular_invasion_indicator', 
-                      'BRCA2_tertile_group', 'BRCA2_mutant',
-                      'BRCA1_2_mutant'))
+    !(colnames(all_data) %in% non_expression_columns)
   ]
 
+  relapse_surv =  Surv(all_data$time.recur, all_data$event.recur==1) 
+  
   cols = colnames(expression_matrix)
   GENES_RANGE =1:nrow(expression_matrix)
   for(i in GENES_RANGE){
@@ -143,6 +163,8 @@ retrieve_p_values <- function(all_data){
     brca1_2_mutant_test = compare_groups(groups_brca1_2_mutant$groupA, 
                                        groups_brca1_2_mutant$groupB)
     
+    relapse_survival_test = check_cox(relapse_surv, expression_matrix[,i])
+    
     output[name,] = c(
       shapiro = shapiro$p.value,
       vascular_invasion_t = vascular_invasion_test$statistic,
@@ -158,7 +180,9 @@ retrieve_p_values <- function(all_data){
       brca2_mutant_t = brca2_mutant_test$statistic,
       brca2_mutant_p = brca2_mutant_test$p.value,
       brca1_2_mutant_t = brca1_2_mutant_test$statistic,
-      brca1_2_mutant_p = brca1_2_mutant_test$p.value
+      brca1_2_mutant_p = brca1_2_mutant_test$p.value,
+      relapse_cox_hr = relapse_survival_test$hazard.ratio,
+      relapse_cox_p =  relapse_survival_test$p.value
       )
 
   }  
@@ -191,9 +215,16 @@ mutated_brca1_2 <- read.csv(
   paste(DATA_FOLDER_DIRECTORY, '/brca1_2_mutated.txt', sep='')
 )
 
+#Read and prepare FOLLOWUP 
+
+followup <- followup.load(
+    paste(DATA_FOLDER_DIRECTORY, '/follow_up.txt', sep='')
+)
 
 #Merge all data files and add BRCA2 expression columns
 all_data= merge(clinical_data, expression_data, by="bcr_patient_barcode")
+all_data = merge(all_data, followup, 
+                 by.x='bcr_patient_barcode', by.y='barcode', all=TRUE)
 
 all_data$BRCA2_tertile_group = cut(
   all_data$BRCA2,
@@ -211,5 +242,5 @@ all_data$BRCA1_2_mutant = ifelse(
 )
 
 tests = (retrieve_p_values(all_data))
-head(tests)
+
 write.csv(tests, './output/t_tests.txt')
