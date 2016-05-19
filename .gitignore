@@ -5,6 +5,7 @@
 #IGNORE DATA AND OUTPUT FILES
 output/
 data/
+tmp/
 *.png
 *.rar
 *.log
