@@ -1,6 +1,6 @@
 ROOT_DIRECTORY = '../../../..'
 DATA_FOLDER_DIRECTORY = '../prepare_data/output'
-
+install.packages('survival')
 library(survival)
 
 source(
@@ -101,7 +101,7 @@ retrieve_p_values <- function(all_data){
   relapse_surv =  Surv(all_data$time.recur, all_data$event.recur==1) 
   
   cols = colnames(expression_matrix)
-  GENES_RANGE =1:nrow(expression_matrix)
+  GENES_RANGE =1:ncol(expression_matrix)
   for(i in GENES_RANGE){
     name = cols[i]
     groups_vascular = create_groups(expression_matrix[,i],
@@ -130,22 +130,22 @@ retrieve_p_values <- function(all_data){
     )
 
     groups_brca_tertile  = create_groups(expression_matrix[,i],
-                                         all_data[,'BRCA2_tertile_group'], 
-                                         c('LOW'), 
+                                         all_data[,'BRCA2_tertile_group'],
+                                         c('LOW'),
                                          c('HIGH')
-    )    
+    )
 
     groups_brca_mutant  = create_groups(expression_matrix[,i],
-                                        all_data[,'BRCA2_mutant'], 
-                                        c('NO'), 
+                                        all_data[,'BRCA2_mutant'],
+                                        c('NO'),
                                         c('YES')
-    )  
+    )
 
     groups_brca1_2_mutant  = create_groups(expression_matrix[,i],
-                                        all_data[,'BRCA1_2_mutant'], 
-                                        c('NO'), 
+                                        all_data[,'BRCA1_2_mutant'],
+                                        c('NO'),
                                         c('YES')
-    )      
+    )
             
     shapiro = shapiro.test(expression_matrix[,i])
     vascular_invasion_test = compare_groups(groups_vascular$groupA, 
@@ -156,11 +156,11 @@ retrieve_p_values <- function(all_data){
                                          groups_clinical_stage$groupB)
     tumor_grade_test = compare_groups(groups_tumor_grade$groupA, 
                                       groups_tumor_grade$groupB)
-    brca_tertile_test = compare_groups(groups_brca_tertile$groupA, 
+    brca_tertile_test = compare_groups(groups_brca_tertile$groupA,
                                        groups_brca_tertile$groupB)
-    brca2_mutant_test = compare_groups(groups_brca_mutant$groupA, 
+    brca2_mutant_test = compare_groups(groups_brca_mutant$groupA,
                                        groups_brca_mutant$groupB)
-    brca1_2_mutant_test = compare_groups(groups_brca1_2_mutant$groupA, 
+    brca1_2_mutant_test = compare_groups(groups_brca1_2_mutant$groupA,
                                        groups_brca1_2_mutant$groupB)
     
     relapse_survival_test = check_cox(relapse_surv, expression_matrix[,i])
