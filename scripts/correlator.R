@@ -38,7 +38,7 @@ DATA_FILE = args[1]
 RULES_FILE = args[2]
 OUTPUT_FILE = args[3]
 
-data_file = read.csv(DATA_FILE)
+data_file = read.csv(DATA_FILE, sep=';')
 rules_file = read.csv(RULES_FILE, sep=';')
 write('COLUMN1;COLUMN2;SUBGROUP;CORRELATION;P-VALUE', OUTPUT_FILE)
 
