@@ -49,6 +49,6 @@ if(IGNORE_CASE){
   merged = merge(file_a, file_b, by=COLUMN, all = TRUE)
 }
 
-write.csv(merged, OUTPUT_FILE)
+write.table(merged, OUTPUT_FILE, sep=";")
 
 print(paste('Ok, file generated at', OUTPUT_FILE))
