@@ -20,7 +20,9 @@ option_list = list(
   make_option(c('-c', '--column'), type='character', default=NULL,
               help='Common column to merge', metavar='character'),
   make_option(c('-i', '--ignore_case'), action='store_true', default=FALSE,
-              help="Merge columns ignoring casing")
+              help="Merge columns ignoring casing"),
+  make_option(c('-v', '--verbose'), action='store_true', default=FALSE,
+              help="Make the process verbose (displaying process information)")
 
 )
 
@@ -33,22 +35,33 @@ COLUMN = opt$column# Column to merge
 OUTPUT_FILE = opt$output #Location of result file
 IGNORE_CASE= opt$ignore_case # Ignore character casing when merge
 
+VERBOSE = opt$verbose
+
 if(is.null(COLUMN)){
   stop("COLUMN field is necessary")
 } else if(is.null(OUTPUT_FILE)){
   stop("OUTPUT field is necessary")
 }
 
+echo <- function(message){
+  if(VERBOSE){
+    print(message)
+  }
+}
 
+echo("Reading data..")
 file_a = read.csv(FILE_A, sep=';', as.is=TRUE)
 file_b = read.csv(FILE_B, sep=';', as.is=TRUE)
-
+echo("Start PARTY TIME!!")
 if(IGNORE_CASE){
+  echo("Start merge ignoring case")
   merged = merge_ignoring(file_a, file_b, by=COLUMN, all=TRUE )
 } else {
+  echo("Start default merge")
   merged = merge(file_a, file_b, by=COLUMN, all = TRUE)
 }
 
+echo("After party, write!")
 write.table(merged, OUTPUT_FILE, sep=";")
 
 print(paste('Ok, file generated at', OUTPUT_FILE))
