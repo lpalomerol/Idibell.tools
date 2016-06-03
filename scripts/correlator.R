@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 
+#install.packages('Kendall')
+library(Kendall)
+
 #This script executes column correlations inside one file.
 #  The input params are these ones:
 #    - DATA CSV FILE
@@ -18,6 +21,19 @@ write_correlation <- function(name, correlation, file){
   write(line_to_write, file, append = TRUE)    
 }
 
+do_kendall <- function(column1, column2){
+  correlation = list(
+    p.value=NA,
+    estimate=NA,
+    observation=NA
+  )
+  kendall_test = Kendall(column1, column2)
+  correlation$p.value = kendall_test$sl[1]
+  correlation$estimate = kendall_test$tau[1]
+  correlation$observation='From Kendall package'
+  return(correlation)
+}
+
 do_correlation <- function(column1, column2, method){
   correlation = list(
     p.value=NA,
@@ -25,7 +41,11 @@ do_correlation <- function(column1, column2, method){
     observation=NA
   )
   tryCatch({
-    correlation = cor.test(column1, column2, method=method)
+    if(method == 'kendall-b'){
+      correlation = do_kendall(column1, column2)
+    } else {
+      correlation = cor.test(column1, column2, method=method)
+    }
   },error = function(err){
     print(paste('ERROR DOING THE CORRELATION!', err))
   }, warning = function(warning){
