@@ -9,5 +9,5 @@ OUTPUT=$3
 
 GENE_LIST="bcr_patient_barcode\|$GENE_LIST"
 echo "Filtering $GENE_LIST at $DATA_FILE"
-grep $GENE_LIST $DATA_FILE > $OUTPUT
+grep -w $GENE_LIST $DATA_FILE > $OUTPUT
 echo "Done!, check $OUTPUT"
