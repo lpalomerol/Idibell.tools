@@ -1,8 +1,11 @@
 #!/usr/bin/env Rscript
 library("optparse")
 library("parallel")
+
 INCLUDE=TRUE
 EXCLUDE=FALSE
+
+LENGTH_SAMPLE_ID=15
 
 gene_expression.load <- function(filename, first_column_name=''){
   expression_file = read.csv(filename, sep=' ', as.is=TRUE, header=TRUE)  
@@ -18,7 +21,7 @@ gene_expression.0_to_NA <- function(expression){
 }
 
 gene_expression.normalize_tcga_names <- function(names){
-  gsub('\\.', '-',substr(names, 0,16))
+  gsub('\\.', '-',substr(names, 0,LENGTH_SAMPLE_ID))
 }
 
 gene_expression.filter <- function(expression, ids, action = INCLUDE){
@@ -30,10 +33,11 @@ gene_expression.filter <- function(expression, ids, action = INCLUDE){
 }
 
 
-make_test <- function(array1, array2){
+make_test <- function(array1, array2, n){
   test_result = list(
     statistic = NA,
     p.value = NA,
+    fdr = NA,
     x.mean =  NA,
     y.mean =  NA,
     x.n = sum(!is.na(array1)),
@@ -44,10 +48,11 @@ make_test <- function(array1, array2){
     test_result = list(
       statistic = res$statistic,
       p.value = res$p.value,
-      x.n = sum(!is.na(array1)),
-      y.n = sum(!is.na(array2)),
+      fdr = p.adjust(res$p.value, 'fdr', n),
       x.mean = res$estimate[1][[1]],
-      y.mean = res$estimate[2][[1]]
+      y.mean = res$estimate[2][[1]],
+      x.n = sum(!is.na(array1)),
+      y.n = sum(!is.na(array2))
     )
   }, error = function(err){
     print(paste("Error doing the t-test", err))
@@ -71,12 +76,12 @@ option_list = list(
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser)
-# 
-# opt$'expression-file' = "c:/Users/lpalomero/Documents/TCGA_DATA/brca_data/data_expression_genes_merged_only_cancer.txt"
-# opt$left = "c:/Users/lpalomero/Dropbox/1.Grupos/8.Pujana/Proyectos/2.breast_cancer_chemoresistance/9.T-test_denovo_enriched/1.input/3.enriched_deNovoDeletereous_TCGA-tumors.txt"
-# # opt$right = NULL
-# opt$'gene-ids-column' = ''
-# opt$out= "c:/Users/lpalomero/Dropbox/1.Grupos/8.Pujana/Proyectos/2.breast_cancer_chemoresistance/9.T-test_denovo_enriched/3.output/t_tests.csv"
+ 
+# opt$'expression-file' = "C:/Users/lpalomero/Documents/TCGA_DATA/prad_data/RNASeqV2/data_expression_genes_merged.txt"
+# opt$left = "c:/Temp/2.2.Compare_relapse_groups/splitted_samples/1-ERG.csv"
+# opt$right= "c:/Users/lpalomero/Dropbox/1.Grupos/2.Aytes/Projects/1.p53_castration/2.create_basic_tcga_signatures/1.input/0-control_ids.csv"
+# opt$'gene-ids-column' = 'gene_id'
+# opt$out= "c:/Users/lpalomero/Dropbox/1.Grupos/2.Aytes/Projects/1.p53_castration/2.create_basic_tcga_signatures/3.output/t_tests.csv"
 
 output_file = opt$out
 
@@ -113,7 +118,8 @@ test_results = parSapply(cl, items, function(i, genes, expression_left, expressi
   gene = genes[i]
   tmp_result = make_test(
     as.numeric(expression_left[i,]),
-    as.numeric(expression_right[i,])
+    as.numeric(expression_right[i,]),
+    n=length(genes)
   )
   return(tmp_result)
 }, genes=genes, expression_left=expression_left, expression_right=expression_right, make_test=make_test)
@@ -122,7 +128,6 @@ stopCluster(cl)
 
 proc.time() - ptm
 print("Filter non significative results")
-
 
 colnames(test_results) <- genes
 test_results = t(test_results)
