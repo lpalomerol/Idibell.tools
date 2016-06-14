@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 library("optparse")
-
+library("parallel")
 INCLUDE=TRUE
 EXCLUDE=FALSE
 
@@ -32,6 +32,7 @@ gene_expression.filter <- function(expression, ids, action = INCLUDE){
 
 make_test <- function(array1, array2){
   test_result = list(
+    statistic = NA,
     p.value = NA,
     x.mean =  NA,
     y.mean =  NA,
@@ -41,6 +42,7 @@ make_test <- function(array1, array2){
   tryCatch({
     res = t.test(array1, array2)
     test_result = list(
+      statistic = res$statistic,
       p.value = res$p.value,
       x.n = sum(!is.na(array1)),
       y.n = sum(!is.na(array2)),
@@ -69,7 +71,7 @@ option_list = list(
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser)
-
+# 
 # opt$'expression-file' = "c:/Users/lpalomero/Documents/TCGA_DATA/brca_data/data_expression_genes_merged_only_cancer.txt"
 # opt$left = "c:/Users/lpalomero/Dropbox/1.Grupos/8.Pujana/Proyectos/2.breast_cancer_chemoresistance/9.T-test_denovo_enriched/1.input/3.enriched_deNovoDeletereous_TCGA-tumors.txt"
 # # opt$right = NULL
@@ -96,39 +98,39 @@ if(is.null(opt$right) == TRUE){
   expression_right = gene_expression.filter(expression, right_subgroup$Ids)  
 }
 
-test_results = data.frame(
-  p.value = rep(NA, length(genes)),
-  x.mean =  rep(NA, length(genes)),
-  y.mean =  rep(NA, length(genes)),
-  x.n  = rep(NA, length(genes)),
-  y.n  = rep(NA, length(genes))
-)
 
-rownames(test_results) <- genes
-
+items = 1:nrow(expression)
 print(paste("Lets start the checks for ", opt$'expression-file'))
-for(i in 1:nrow(expression)){
-  if(i %% 10 == 0){
-   print(i)
-  }
+ptm <- proc.time()
+
+# Calculate the number of cores
+no_cores <- detectCores() - 1
+
+# Initiate cluster
+cl <- makeCluster(no_cores)
+
+test_results = parSapply(cl, items, function(i, genes, expression_left, expression_right, make_test){
   gene = genes[i]
   tmp_result = make_test(
     as.numeric(expression_left[i,]),
     as.numeric(expression_right[i,])
   )
-  test_results[gene,]$p.value = tmp_result$p.value
-  test_results[gene,]$x.mean = tmp_result$x.mean
-  test_results[gene,]$y.mean = tmp_result$y.mean
-  test_results[gene,]$x.n = tmp_result$x.n
-  test_results[gene,]$y.n = tmp_result$y.n
-}
+  return(tmp_result)
+}, genes=genes, expression_left=expression_left, expression_right=expression_right, make_test=make_test)
 
+stopCluster(cl)
+
+proc.time() - ptm
 print("Filter non significative results")
 
-significative = test_results[(  (  is.na(test_results$p.value)==FALSE)  & test_results$p.value<0.05),]
+
+colnames(test_results) <- genes
+test_results = t(test_results)
+
+significative = test_results[(  (  is.na(test_results[,'p.value'])==FALSE)  & test_results[,'p.value']<0.05),]
 
 print(paste("And save", nrow(significative), "results in ", output_file))
+
 write.table(test_results, paste(output_file, 'all', sep='.'), sep=',', quote=FALSE)
 write.table(significative, output_file, sep=',', quote=FALSE)
-
 
