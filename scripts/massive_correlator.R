@@ -1,5 +1,5 @@
-library("parallel")
 library("optparse")
+library("parallel")
 
 option_list = list(
   make_option(c("-f", "--file"), type="character", default=NULL,
@@ -8,7 +8,13 @@ option_list = list(
   make_option(c("-l", "--left-columns"), type="character", default=NULL,
               help="Columns used to comare vs the rest, the columns should be separated by comas",
               metavar="character"),
+  
+  make_option(c("-s", "--separator"), type="character", default='\t',
+              help="Dataset file separator, [default=%default]", metavar="character"),
 
+  make_option(c("-n", "--first_column"), type="character", default='gene_id',
+              help="Name of the first column, [default=%default]", metavar="character"),  
+  
   make_option(c("-o", "--out"), type="character", default="./",
               help="output folder name [default= %default]", metavar="character")
 );
@@ -29,14 +35,16 @@ split_columns <- function(columns){
 
 gene_expression.load <- function(filename, first_column_name='', separator=';'){
   expression_file = read.csv(filename, sep=separator, as.is=TRUE, header=TRUE)
-  if(first_column_name != ''){
+  if(first_column_name != 'NONE'){
     rownames(expression_file) =   expression_file[,first_column_name]
+    expression_file[!colnames(expression_file) %in% c(first_column_name)]
   }
-  expression_file[!colnames(expression_file) %in% c(first_column_name)]
+  return(expression_file)
 }
 
 gene_expression.0_to_NA <- function(expression){
   expression[expression==0] <- NA
+  expression[expression=='null'] <- NA
   return(expression)
 }
 
@@ -54,13 +62,12 @@ OUTPUT_FOLDER_NAME=opt$out
 
 #dataset_bck=dataset
 
-dataset = gene_expression.load(DATASET_FILE_NAME, 'gene_id', separator=';')
+#CAUTION: Dataset file must have genomic variables at COLUMNS and TCGA samples at rows
+dataset = gene_expression.load(DATASET_FILE_NAME, opt$first_column, separator=opt$separator)
 dataset = gene_expression.0_to_NA(dataset)
-dataset = log(dataset)
 
+correlate_all_paral <- function(gene_name, dataset, output_folder='./output'){
 
-correlate_all_paral <- function(gene_name, dataset,output_folder='./output'){
-  library("parallel")
   genes = colnames(dataset)
   get_data_name <- function(columnA, columnB){
     paste(colnames(columnA)[[1]], 'and', colnames(columnB)[[1]] )
@@ -75,7 +82,7 @@ correlate_all_paral <- function(gene_name, dataset,output_folder='./output'){
       y.n            = sum(!is.na(columnB[[1]]))
     )
     tryCatch({
-      res = cor.test(columnA[[1]], columnB[[1]])
+      res = cor.test(as.numeric(columnA[[1]]), as.numeric(columnB[[1]]))
       test_result = list(
         'p.value'      = res$'p.value',
         'estimate'     = res$estimate,
@@ -107,4 +114,9 @@ correlate_all_paral <- function(gene_name, dataset,output_folder='./output'){
 
 
 genes_to_correlate = split_columns(LEFT_COLUMNS)
-sapply(genes_to_correlate, correlate_all_paral, dataset=dataset,  output_folder=OUTPUT_FOLDER_NAME)
+
+sapply(genes_to_correlate, function(geneName, dataset, output_folder){
+  correlate_all_paral(geneName, dataset, output_folder)
+}, dataset=dataset, output_folder=OUTPUT_FOLDER_NAME)
+
+
