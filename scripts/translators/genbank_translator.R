@@ -33,5 +33,5 @@ accessionWithSymbols = select(org.Hs.eg.db,
 print("Ok, identifiers retrieved...")
 accessionMerged = merge(accession, accessionWithSymbols, by.x='GB_ACC', by.y='ACCNUM')
 
-write.csv(accessionMerged, opt$out )
+write.table(accessionMerged, opt$out, sep='\t', row.names = FALSE, quote = FALSE )
 print("Done!")
